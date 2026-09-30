@@ -8,16 +8,18 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 if TYPE_CHECKING:
     from robobench.metrics.aggregate import MetricSummary
+    from robobench.sim.environment import SimStats
     from robobench.validation.invalid import InvalidCommandEvent
     from robobench.validation.limits import Violation
 
 
 class FailureKind(str, Enum):
-    """Why an episode ended for reasons other than the scenario's own terminations."""
+    """Why an episode ended for reasons other than the task's own success/failure/timeout."""
 
     CONTROLLER_CRASHED = "controller_crashed"
     CONTROLLER_TIMEOUT = "controller_timeout"
     CONTROLLER_RAISED = "controller_raised"
+    CONTROLLER_REJECTED = "controller_rejected"
     INVALID_COMMAND = "invalid_command"
     SIMULATION_ERROR = "simulation_error"
     NOT_RUN = "not_run"
@@ -28,7 +30,7 @@ class FailureKind(str, Enum):
 class EpisodeOutcome:
     success: bool
     termination_reason: str
-    """Termination reason ("goal_reached", "fell", "timeout") or the failure kind's value."""
+    """"success", "timeout", the task's failure reason ("fell", "dropped"), or the failure kind's value."""
     failure_kind: FailureKind | None
     sim_duration: float
     wall_duration: float
@@ -53,15 +55,19 @@ class StepRecord:
 @dataclass
 class EpisodeRecord:
     episode_id: str
-    scenario: str
+    task: str
     label: str | None
     seed: int
-    samples: Mapping[str, Any]
-    """Randomizer outputs, to replay the exact episode."""
+    setup: Mapping[str, Any]
+    """The EpisodeSetup (goal and randomized info), to replay the exact episode."""
     episode_config: Mapping[str, Any]
     """Timing, validation, and invalid-command modes used, so results with different modes can't be mixed up."""
+    sim_params: Mapping[str, Any]
+    """CENIC settings used."""
     outcome: EpisodeOutcome
     metrics: Mapping[str, float]
+    sim_stats: "SimStats | None" = None
+    """Simulation speed and integrator statistics."""
     violations: list["Violation"] = field(default_factory=list)
     invalid_events: list["InvalidCommandEvent"] = field(default_factory=list)
     steps: list[StepRecord] | None = None

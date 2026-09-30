@@ -1,51 +1,23 @@
-"""Messages exchanged between the benchmark (runner) and the controller process.
+"""The gRPC protocol between the benchmark (client) and the controller (server).
 
-Exchange sequence (runner on the left, controller on the right):
-
-    HELLO(SessionInfo)          ->
-                                <-  HELLO_ACK  |  ERROR (incompatible specs / version)
-    per episode:
-      RESET(TaskInfo)           ->
-                                <-  RESET_ACK
-      OBSERVATION(Observation)  ->
-                                <-  ACTION(Action)  |  ERROR (act() raised)
-      ... repeated ...
-      EPISODE_END(EpisodeSummary) ->
-                                <-  EPISODE_END_ACK
-    SHUTDOWN                    ->
-
-Every message carries a sequence number. An ACTION echoes the sequence number of
-the OBSERVATION it answers, which is how real-time mode matches late replies.
+The wire format is defined in `proto/controller.proto`; see it for the call order
+and error codes. This module holds the protocol version and converts between the
+plain dataclasses in `specs` (what user code sees) and the generated protobuf
+messages (what goes over the wire). Numpy arrays travel as `Tensor` messages:
+dtype, shape, and raw bytes, so there is no per-element conversion cost.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import Enum
-from typing import Any
+import numpy as np
+
+from robobench_sdk.proto import controller_pb2 as pb
+from robobench_sdk.specs import Action, EpisodeSummary, Observation, SessionInfo, TaskInfo
 
 PROTOCOL_VERSION = 1
 
-
-class MessageType(str, Enum):
-    HELLO = "hello"
-    HELLO_ACK = "hello_ack"
-    RESET = "reset"
-    RESET_ACK = "reset_ack"
-    OBSERVATION = "observation"
-    ACTION = "action"
-    EPISODE_END = "episode_end"
-    EPISODE_END_ACK = "episode_end_ack"
-    SHUTDOWN = "shutdown"
-    ERROR = "error"
-
-
-@dataclass(frozen=True)
-class Message:
-    type: MessageType
-    seq: int
-    payload: Any = None
-    """A spec dataclass, an Observation/Action dict, an error string, or None."""
+DEFAULT_MAX_MESSAGE_BYTES = 64 * 1024 * 1024
+"""gRPC's 4 MB default is too small for camera images; both sides raise it to this."""
 
 
 class ProtocolError(Exception):
@@ -56,14 +28,56 @@ class ProtocolVersionMismatch(ProtocolError):
     """The two sides speak different protocol versions."""
 
 
-def encode(message: Message) -> bytes:
-    """Serialize a message (including numpy arrays and spec dataclasses) to bytes.
+def tensor_to_proto(array: np.ndarray) -> pb.Tensor:
+    raise NotImplementedError
 
-    Planned implementation: msgpack, with numpy arrays packed as (dtype, shape, raw bytes).
+
+def tensor_from_proto(message: pb.Tensor) -> np.ndarray:
+    """Zero-copy where possible (numpy view over the message bytes, marked read-only)."""
+    raise NotImplementedError
+
+
+def session_to_proto(session: SessionInfo) -> pb.SessionInfo:
+    raise NotImplementedError
+
+
+def session_from_proto(message: pb.SessionInfo) -> SessionInfo:
+    raise NotImplementedError
+
+
+def task_to_proto(task: TaskInfo) -> pb.TaskInfo:
+    raise NotImplementedError
+
+
+def task_from_proto(message: pb.TaskInfo) -> TaskInfo:
+    raise NotImplementedError
+
+
+def observation_to_proto(observation: Observation, seq: int) -> pb.Observation:
+    """Arrays go in `arrays`, strings in `texts`, and observation["time"] in `time`."""
+    raise NotImplementedError
+
+
+def observation_from_proto(message: pb.Observation) -> Observation:
+    raise NotImplementedError
+
+
+def action_to_proto(action: Action, seq: int) -> pb.Action:
+    """Raises ProtocolError if a value can't be converted to an array.
+
+    Values that convert but are wrong (NaN, wrong shape) are sent as-is: judging them is the
+    benchmark's job, so that invalid commands are handled and logged the same way for everyone.
     """
     raise NotImplementedError
 
 
-def decode(data: bytes) -> Message:
-    """Inverse of `encode`. Raises `ProtocolError` on malformed input."""
+def action_from_proto(message: pb.Action) -> Action:
+    raise NotImplementedError
+
+
+def summary_to_proto(summary: EpisodeSummary) -> pb.EpisodeSummary:
+    raise NotImplementedError
+
+
+def summary_from_proto(message: pb.EpisodeSummary) -> EpisodeSummary:
     raise NotImplementedError

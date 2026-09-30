@@ -21,15 +21,15 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class EpisodeJob:
     episode_id: str
-    scenario: str
+    task: str
     overrides: dict[str, Any] = field(default_factory=dict)
     seed: int = 0
     label: str | None = None
     observation_pipeline: list[dict[str, Any]] | None = None
 
 
-def derive_seed(base_seed: int, scenario_label: str, index: int) -> int:
-    """Stable per-episode seed: the same (base_seed, scenario, index) always gives the same episode,
+def derive_seed(base_seed: int, task_label: str, index: int) -> int:
+    """Stable per-episode seed: the same (base_seed, task, index) always gives the same episode,
     regardless of worker count or order."""
     raise NotImplementedError
 
@@ -61,8 +61,8 @@ def worker_main(
 ) -> None:
     """Worker process entry point.
 
-    Starts one controller process, builds (and caches) one environment per scenario,
-    handshakes with the controller whenever the scenario (robot/specs) changes, and runs jobs.
+    Starts one controller process, builds (and caches) one CENIC environment per task,
+    handshakes with the controller whenever the task (robot/specs) changes, and runs jobs.
     On controller crash: record the episode as failed, restart, continue. Once restarts run
     out, report the remaining jobs as not run.
     """

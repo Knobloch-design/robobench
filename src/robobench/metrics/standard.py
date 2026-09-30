@@ -1,4 +1,4 @@
-"""Standard metrics. `default_metrics()` is what every scenario gets unless it sets its own."""
+"""Standard metrics. `default_metrics()` is what every task gets unless it sets its own."""
 
 from __future__ import annotations
 
@@ -28,7 +28,10 @@ class TimeToCompletion(Metric):
 
 
 class GoalError(Metric):
-    """"final_goal_error" and "mean_goal_error" (time-averaged), using the scenario's Goal.error."""
+    """"final_goal_error" and "mean_goal_error" (time-averaged), from `Task.goal_error`.
+
+    Reports nothing for tasks whose goal_error returns None.
+    """
 
     name = "goal_error"
 
@@ -86,7 +89,7 @@ class MechanicalEnergy(Metric):
 class CollisionCount(Metric):
     """"collisions": number of new contacts between body pairs that shouldn't touch.
 
-    Allowed contacts (feet-ground, fingertips-cube) are listed per scenario.
+    Allowed contacts (feet-ground, fingertips-cube) are listed per task.
     """
 
     name = "collisions"
@@ -150,7 +153,7 @@ class ControllerLatency(Metric):
 
 
 def default_metrics() -> list[Metric]:
-    """Everything above except TrackingError, which needs a scenario-specific reference."""
+    """Everything above except TrackingError, which needs a task-specific reference."""
     return [
         Success(),
         TimeToCompletion(),

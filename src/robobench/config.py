@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pydrake.multibody.plant import MultibodyPlantConfig
+    from pydrake.systems.analysis import SimulatorConfig
 
     from robobench.sensors.pipeline import ObservationPipeline
 
@@ -40,19 +41,34 @@ class InvalidCommandMode(str, Enum):
 
 @dataclass
 class SimParams:
-    """Physics settings. Scenarios set their own, since contact-heavy tasks need different values."""
+    """Physics settings. Every task runs on CENIC: a continuous-time plant integrated by Drake's
+    error-controlled convex integrator (`integration_scheme="cenic"`, Drake >= 1.57).
 
-    time_step: float = 0.001
-    """Discrete plant time step (s)."""
-    discrete_contact_approximation: str = "sap"
-    """"tamsi", "sap", "similar", or "lagged". Deformable bodies require "sap"."""
+    Accuracy is the main knob: CENIC picks its own step sizes to keep the estimated error
+    below it, so there is no fixed time step. Tasks set their own values, since contact-rich
+    manipulation needs tighter accuracy than walking. The defaults are placeholders until
+    tuned per task.
+    """
+
+    accuracy: float = 1e-3
+    """Integrator error tolerance. Smaller is more accurate and slower."""
+    max_step_size: float = 0.01
+    """Upper bound on CENIC's step size (s)."""
     contact_model: str = "hydroelastic_with_fallback"
     """"point", "hydroelastic", or "hydroelastic_with_fallback"."""
-    penetration_allowance: float | None = None
-    extra: dict[str, Any] = field(default_factory=dict)
-    """Any other MultibodyPlantConfig fields."""
+    extra_plant_config: dict[str, Any] = field(default_factory=dict)
+    """Any other MultibodyPlantConfig fields. `time_step` is always 0 (continuous) and can't be overridden."""
 
-    def to_plant_config(self) -> "MultibodyPlantConfig":
+    def plant_config(self) -> "MultibodyPlantConfig":
+        """MultibodyPlantConfig with time_step=0 and these contact settings."""
+        raise NotImplementedError
+
+    def simulator_config(self) -> "SimulatorConfig":
+        """SimulatorConfig(integration_scheme="cenic", accuracy, max_step_size, use_error_control=True)."""
+        raise NotImplementedError
+
+    def to_dict(self) -> dict[str, Any]:
+        """Recorded with every result and demonstration, since results depend on it."""
         raise NotImplementedError
 
 
@@ -64,13 +80,14 @@ class EpisodeConfig:
     control_period: float = 0.02
     """Simulation seconds between controller calls (50 Hz default)."""
     real_time_rate: float = 1.0
-    """Real-time mode only: sim seconds per wall-clock second."""
+    """Real-time mode only: target sim seconds per wall-clock second. CENIC slows down during hard
+    contact; if the simulation itself falls behind, the achieved rate is recorded in the results."""
     validation: ValidationMode = ValidationMode.MONITOR
     invalid_command: InvalidCommandMode = InvalidCommandMode.FAIL
     step_timeout: float = 120.0
     """Wall-clock seconds to wait for one action before declaring the controller hung. Applies in both modes."""
     observation_pipeline: "ObservationPipeline | None" = None
-    """Overrides the scenario's pipeline if set. None keeps the scenario's (pass-through by default)."""
+    """Overrides the task's pipeline if set. None keeps the task's (pass-through by default)."""
     record_steps: bool = False
     """Store per-step records (large)."""
     record_video: bool = False
@@ -82,7 +99,7 @@ class RunConfig:
     """Settings for a whole benchmark run."""
 
     output_dir: Path = Path("results")
-    episodes_per_scenario: int = 10
+    episodes_per_task: int = 10
     base_seed: int = 0
     num_workers: int = 1
     """Parallel worker processes. Each gets its own simulator and its own controller process."""

@@ -5,10 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "robobench"
 version = "0.0.1"
-description = "Drake-based benchmark for testing arbitrary robot controllers across scenarios."
+description = "Drake/CENIC-based benchmark for testing arbitrary robot controllers across tasks."
 requires-python = ">=3.10"
+# License: to be decided before the repository goes public.
 dependencies = [
-    "drake",
+    "drake>=1.57",  # first release with CENIC Python bindings
     "numpy",
     "pyyaml",
     "robobench-sdk",
@@ -19,3 +20,6 @@ robobench = "robobench.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+robobench = ["assets/manifest.yaml", "tasks/library/demos/**/*"]

@@ -76,7 +76,7 @@ class JointPositionInterface(CommandInterface):
 
     Models servos with an internal PD loop and effort limit (e.g. the LEAP hand's
     Dynamixels, the Trossen arms' position mode). Implemented with Drake's
-    PD-controlled joint actuators, whose gains should match the real servo.
+    PD-controlled joint actuators (supported by CENIC), whose gains should match the real servo.
     """
 
     name = "joint_position"

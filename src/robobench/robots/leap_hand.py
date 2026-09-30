@@ -20,6 +20,10 @@ DEFAULT_URDF_DIR = Path(__file__).resolve().parents[4] / "dex-urdf-main/robots/h
 class LeapHand(RobotDefinition):
     """Fixed-base dexterous hand, welded to the world at `mount_pose`.
 
+    The dex-urdf LEAP model defines no actuators, so `add_to_plant` adds one per revolute
+    joint, with the Dynamixels' effort limit and servo gains (PD-controlled actuators work
+    on CENIC's continuous-time plant; checked with Drake 1.57).
+
     Default sensors: joint state (position, velocity, motor current as effort).
     Command interfaces: "joint_position" (default, Dynamixel current-limited position mode)
     and "joint_torque" (Dynamixel current mode).

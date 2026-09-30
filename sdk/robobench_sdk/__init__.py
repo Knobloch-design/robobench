@@ -2,7 +2,8 @@
 
 Users subclass `Controller`, then either let the benchmark launch it
 (`ControllerLaunchConfig(target="my_pkg.my_module:MyController")`) or start it
-themselves with `serve(...)`. Nothing in this package imports Drake.
+themselves with `serve(...)`. The SDK runs it as a gRPC server; the protocol is
+defined in `proto/controller.proto`. Nothing in this package imports Drake.
 """
 
 from robobench_sdk.controller import Controller, IncompatibleSpecError

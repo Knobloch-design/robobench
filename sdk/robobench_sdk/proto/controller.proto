@@ -1,0 +1,114 @@
+// The robobench controller protocol.
+//
+// The controller runs a gRPC server implementing `Controller`; the benchmark is
+// the client. This file is the source of truth for the protocol: any language
+// with gRPC support can implement a controller from it. Python users get a
+// ready-made server from robobench_sdk and never touch this file.
+//
+// Call order per session:
+//   Connect(SessionInfo)
+//   repeat per episode:
+//     Reset(TaskInfo)
+//     Act(Observation) ... Act(Observation)
+//     EndEpisode(EpisodeSummary)
+//   Shutdown
+//
+// Errors are reported with gRPC status codes:
+//   FAILED_PRECONDITION  Connect: the controller rejects the specs or protocol version.
+//   INTERNAL             The controller's own code raised; details carry the traceback.
+//   DEADLINE_EXCEEDED    Set by the benchmark when a reply exceeds the step timeout.
+//
+// Bump PROTOCOL_VERSION (robobench_sdk/protocol.py) on any incompatible change.
+
+syntax = "proto3";
+
+package robobench.v1;
+
+import "google/protobuf/struct.proto";
+
+// A numpy array: dtype name (e.g. "float64", "uint8"), shape, and raw C-order bytes.
+message Tensor {
+  string dtype = 1;
+  repeated int64 shape = 2;
+  bytes data = 3;
+}
+
+message ArraySpec {
+  string name = 1;
+  repeated int64 shape = 2;
+  string dtype = 3;
+  Tensor low = 4;   // unset = unbounded
+  Tensor high = 5;  // unset = unbounded
+  string units = 6;
+  repeated string element_names = 7;
+  string description = 8;
+}
+
+message TextSpec {
+  string name = 1;
+  string description = 2;
+}
+
+message ObservationSpec {
+  map<string, ArraySpec> arrays = 1;
+  map<string, TextSpec> texts = 2;
+}
+
+message ActionSpec {
+  string interface = 1;
+  map<string, ArraySpec> arrays = 2;
+}
+
+message SessionInfo {
+  uint32 protocol_version = 1;
+  string robot = 2;
+  ObservationSpec observation_spec = 3;
+  ActionSpec action_spec = 4;
+  double control_period = 5;
+  string timing_mode = 6;  // "lockstep" or "real_time"
+  google.protobuf.Struct robot_constants = 7;
+}
+
+message ConnectReply {
+  uint32 protocol_version = 1;
+  string controller_name = 2;
+}
+
+message TaskInfo {
+  string task = 1;
+  string episode_id = 2;
+  string description = 3;
+  google.protobuf.Struct goal = 4;
+  double max_duration = 5;
+  uint64 controller_seed = 6;
+  google.protobuf.Struct metadata = 7;
+}
+
+message Observation {
+  uint64 seq = 1;
+  double time = 2;
+  map<string, Tensor> arrays = 3;
+  map<string, string> texts = 4;
+}
+
+message Action {
+  uint64 seq = 1;  // echoes the Observation it answers
+  map<string, Tensor> arrays = 2;
+}
+
+message EpisodeSummary {
+  string episode_id = 1;
+  bool success = 2;
+  string termination_reason = 3;
+  map<string, double> metrics = 4;
+}
+
+message Empty {}
+
+service Controller {
+  rpc Connect(SessionInfo) returns (ConnectReply);
+  rpc Reset(TaskInfo) returns (Empty);
+  rpc Act(Observation) returns (Action);
+  rpc EndEpisode(EpisodeSummary) returns (Empty);
+  rpc Shutdown(Empty) returns (Empty);
+}

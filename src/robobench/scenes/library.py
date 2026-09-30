@@ -29,6 +29,6 @@ def hand_workspace(object_name: str = "cube") -> Scene:
     raise NotImplementedError
 
 
-def tabletop(objects: tuple[str, ...] = (), deformable: tuple[str, ...] = ()) -> Scene:
-    """Table in front of the Trossen cell. `deformable` objects are simulated as FEM soft bodies."""
+def tabletop(manipulands: tuple[str, ...] = ()) -> Scene:
+    """Table in front of the Trossen cell, with manipulands from the asset manifest (e.g. from LBM-eval)."""
     raise NotImplementedError

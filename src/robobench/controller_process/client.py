@@ -1,51 +1,88 @@
-"""Runner-side stub for the remote controller: one method per protocol exchange."""
+"""Benchmark-side gRPC client for the controller: one method per RPC in controller.proto.
+
+gRPC failures are translated into the exceptions below, which the episode loop turns
+into failure kinds in the results.
+"""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from robobench_sdk.protocol import DEFAULT_MAX_MESSAGE_BYTES
 from robobench_sdk.specs import Action, EpisodeSummary, Observation, SessionInfo, TaskInfo
 
 if TYPE_CHECKING:
     from robobench.controller_process.launcher import ControllerProcess
-    from robobench_sdk.transport import Transport
 
 
 class ControllerError(Exception):
-    """Base class. The episode loop turns these into failure kinds in the results."""
+    """Base class."""
 
 
 class ControllerTimeout(ControllerError):
-    """No reply within the step timeout (or the startup timeout for the handshake)."""
+    """No reply within the step timeout (gRPC DEADLINE_EXCEEDED)."""
 
 
 class ControllerCrashed(ControllerError):
-    """The process exited or the connection dropped."""
+    """The process exited or the connection dropped (gRPC UNAVAILABLE, or the process is gone)."""
 
 
 class ControllerRaised(ControllerError):
-    """The controller's own code raised. Carries the remote traceback."""
+    """The controller's own code raised (gRPC INTERNAL). Carries the remote traceback."""
 
     def __init__(self, remote_traceback: str) -> None:
         super().__init__(remote_traceback)
         self.remote_traceback = remote_traceback
 
 
+class ControllerRejected(ControllerError):
+    """Connect was refused: incompatible specs or protocol version (gRPC FAILED_PRECONDITION)."""
+
+
+class PendingAction:
+    """An in-flight Act call (real-time mode). Wraps a gRPC future."""
+
+    @property
+    def seq(self) -> int:
+        raise NotImplementedError
+
+    def done(self) -> bool:
+        raise NotImplementedError
+
+    def result(self, timeout: float | None = None) -> tuple[Action, float]:
+        """(action, wall-clock latency). Raises the ControllerError the call failed with."""
+        raise NotImplementedError
+
+    def cancel(self) -> None:
+        raise NotImplementedError
+
+
 class ControllerClient:
-    def __init__(self, transport: "Transport", process: "ControllerProcess | None", step_timeout: float) -> None:
+    def __init__(
+        self,
+        address: str,
+        process: "ControllerProcess | None",
+        step_timeout: float,
+        max_message_bytes: int = DEFAULT_MAX_MESSAGE_BYTES,
+    ) -> None:
         """
         Args:
-            transport: Bound transport the controller connects to.
-            process: Used to tell a crash apart from a slow reply. None for external controllers.
-            step_timeout: Wall-clock seconds to wait for each action.
+            address: host:port of the controller's gRPC server.
+            process: Used to tell a crash from a slow reply. None for external controllers.
+            step_timeout: Deadline (wall-clock seconds) for each Act call.
+            max_message_bytes: Must match the controller side (large enough for images).
         """
         raise NotImplementedError
 
-    def handshake(self, session: SessionInfo, timeout: float) -> None:
-        """Send HELLO and wait for HELLO_ACK.
+    def wait_until_ready(self, timeout: float) -> None:
+        """Block until the channel connects (model loading can make startup slow)."""
+        raise NotImplementedError
+
+    def connect(self, session: SessionInfo) -> str:
+        """Handshake. Returns the controller's reported name.
 
         Raises:
-            ControllerRaised: the controller rejected the specs (IncompatibleSpecError) or the protocol version.
+            ControllerRejected: specs or protocol version refused.
         """
         raise NotImplementedError
 
@@ -53,23 +90,20 @@ class ControllerClient:
         raise NotImplementedError
 
     def act(self, observation: Observation) -> tuple[Action, float]:
-        """Lockstep: send the observation and block for the action.
+        """Lockstep: blocking Act call with the step-timeout deadline.
 
         Returns:
-            (action, wall-clock latency in seconds). The action is returned exactly as received.
+            (action exactly as received, wall-clock latency in seconds).
         """
         raise NotImplementedError
 
-    def send_observation(self, observation: Observation) -> int:
-        """Real-time: send without waiting. Returns the sequence number."""
+    def act_async(self, observation: Observation) -> PendingAction:
+        """Real-time: start an Act call without waiting."""
         raise NotImplementedError
 
-    def poll_action(self, timeout: float = 0.0) -> tuple[int, Action, float] | None:
-        """Real-time: (seq, action, latency) if a reply has arrived, else None."""
-        raise NotImplementedError
-
-    def episode_end(self, summary: EpisodeSummary) -> None:
+    def end_episode(self, summary: EpisodeSummary) -> None:
         raise NotImplementedError
 
     def shutdown(self) -> None:
+        """Send Shutdown and close the channel. Never raises."""
         raise NotImplementedError

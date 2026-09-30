@@ -62,7 +62,7 @@ class RobotDefinition(ABC):
     @property
     @abstractmethod
     def default_command_interface(self) -> str:
-        """Key into `command_interfaces()` used when a scenario doesn't choose one."""
+        """Key into `command_interfaces()` used when a task doesn't choose one."""
 
     @property
     @abstractmethod

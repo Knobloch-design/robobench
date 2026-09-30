@@ -1,4 +1,8 @@
-"""Randomizers: draw per-episode values from a seed, then apply them to the simulation."""
+"""Randomizers: draw per-episode values from the seed, then write them into the context.
+
+Used by `ComposedTask.reset`, which runs every randomizer's `sample` in order with one
+shared rng, then every `apply`.
+"""
 
 from __future__ import annotations
 
@@ -8,49 +12,48 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 import numpy as np
 
 if TYPE_CHECKING:
-    from pydrake.multibody.plant import MultibodyPlant
-    from pydrake.systems.framework import Context
-
-    from robobench.scenarios.scenario import Scenario
+    from robobench.sim.state import SimState
+    from robobench.tasks.task import Task
 
 
 class Randomizer(ABC):
-    """Two phases, so sampling is reproducible and recorded separately from simulation:
-
-    `sample` is pure (only the rng and earlier samples), and its output is stored in the results.
-    `apply` writes those values into the simulation at episode reset.
-    """
+    goal_keys: tuple[str, ...] = ()
+    """Sample keys that go into EpisodeSetup.goal (told to the controller). Everything else goes into info."""
 
     @abstractmethod
-    def sample(
-        self, rng: np.random.Generator, scenario: "Scenario", previous: Mapping[str, Any]
-    ) -> Mapping[str, Any]:
-        """Draw values. `previous` holds samples from earlier randomizers (e.g. keep the goal far from the start).
+    def sample(self, rng: np.random.Generator, task: "Task", previous: Mapping[str, Any]) -> Mapping[str, Any]:
+        """Draw values. `previous` holds earlier randomizers' samples. Values must be plain data."""
 
-        Values must be plain data (numbers, lists, strings) so they can be saved as JSON.
-        """
-
-    def apply(self, samples: Mapping[str, Any], plant: "MultibodyPlant", plant_context: "Context") -> None:
-        """Write the values into the simulation. Default: nothing (e.g. goal samples only affect the goal)."""
+    def apply(self, samples: Mapping[str, Any], state: "SimState") -> None:
+        """Write the values into the context. Default: nothing (e.g. goal samples)."""
 
 
 class RegionPoseRandomizer(Randomizer):
     """Place a body (or a floating robot base) at a random pose in one of the scene's regions."""
 
-    def __init__(self, key: str, region: str, body_name: str | None = None, min_distance_from: str | None = None, min_distance: float = 0.0) -> None:
+    def __init__(
+        self,
+        key: str,
+        region: str,
+        body_name: str | None = None,
+        min_distance_from: str | None = None,
+        min_distance: float = 0.0,
+        is_goal: bool = False,
+    ) -> None:
         """
         Args:
             key: Sample name, e.g. "start_pose".
             region: Scene region to sample from.
             body_name: Body to move in `apply`. None only records the pose (e.g. a goal pose).
             min_distance_from / min_distance: Resample until this far from an earlier sample.
+            is_goal: Send this sample to the controller as part of the goal.
         """
         raise NotImplementedError
 
-    def sample(self, rng, scenario, previous):
+    def sample(self, rng, task, previous):
         raise NotImplementedError
 
-    def apply(self, samples, plant, plant_context) -> None:
+    def apply(self, samples, state) -> None:
         raise NotImplementedError
 
 
@@ -60,20 +63,20 @@ class JointPositionRandomizer(Randomizer):
     def __init__(self, amplitude: float, key: str = "initial_joint_positions") -> None:
         raise NotImplementedError
 
-    def sample(self, rng, scenario, previous):
+    def sample(self, rng, task, previous):
         raise NotImplementedError
 
-    def apply(self, samples, plant, plant_context) -> None:
+    def apply(self, samples, state) -> None:
         raise NotImplementedError
 
 
 class ChoiceRandomizer(Randomizer):
     """Pick one of a set of discrete options, e.g. which cube face should end up on top."""
 
-    def __init__(self, key: str, options: Sequence[Any]) -> None:
+    def __init__(self, key: str, options: Sequence[Any], is_goal: bool = False) -> None:
         raise NotImplementedError
 
-    def sample(self, rng, scenario, previous):
+    def sample(self, rng, task, previous):
         raise NotImplementedError
 
 
@@ -89,8 +92,8 @@ class PhysicalParameterRandomizer(Randomizer):
     ) -> None:
         raise NotImplementedError
 
-    def sample(self, rng, scenario, previous):
+    def sample(self, rng, task, previous):
         raise NotImplementedError
 
-    def apply(self, samples, plant, plant_context) -> None:
+    def apply(self, samples, state) -> None:
         raise NotImplementedError

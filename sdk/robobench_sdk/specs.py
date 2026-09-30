@@ -85,7 +85,8 @@ class SessionInfo:
 class TaskInfo:
     """Sent at the start of every episode."""
 
-    scenario: str
+    task: str
+    """Registry name of the task, e.g. "leap/cube_reorientation"."""
     episode_id: str
     description: str
     """Natural-language task description, e.g. "Walk to the marked doorway"."""
@@ -94,7 +95,7 @@ class TaskInfo:
     max_duration: float
     controller_seed: int
     """Seed the controller may use for its own randomness. Derived from, but not equal to,
-    the scenario seed, so it cannot be used to reproduce the hidden randomization."""
+    the task's reset seed, so it cannot be used to reproduce the hidden randomization."""
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
 

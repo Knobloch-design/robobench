@@ -26,10 +26,9 @@ class ControllerLaunchConfig:
     env: Mapping[str, str] = field(default_factory=dict)
     """Extra environment variables (e.g. CUDA_VISIBLE_DEVICES, API keys)."""
     address: str | None = None
-    """Address to bind for launched controllers (None picks a free local port),
-    or the address of an already-running controller."""
+    """host:port of an already-running controller. Ignored when launching (a free local port is used)."""
     startup_timeout: float = 120.0
-    """Seconds to wait for the handshake (model loading can be slow)."""
+    """Seconds to wait for the server to come up (model loading can be slow)."""
     max_restarts: int = 3
     """Per worker. After this many crashes the worker's remaining episodes are marked not run."""
     log_dir: Path | None = None
@@ -41,21 +40,22 @@ class ControllerLaunchConfig:
 
 
 class ControllerProcess:
-    """One controller process (or a connection to an externally started one)."""
+    """One controller process (or the address of an externally started one)."""
 
     def __init__(self, config: ControllerLaunchConfig) -> None:
         raise NotImplementedError
 
     def start(self) -> str:
-        """Launch `python -m robobench_sdk.server ...` (if launching) and return the address to talk on."""
+        """Launch `python -m robobench_sdk.server --controller ... --port-file ...` (if launching),
+        wait for the port file, and return the host:port to connect to."""
         raise NotImplementedError
 
     def is_alive(self) -> bool:
-        """For external controllers, whether the connection is still up."""
+        """For external controllers, always True; the client detects dropped connections."""
         raise NotImplementedError
 
     def stop(self, grace_period: float = 5.0) -> None:
-        """Ask it to shut down; kill after `grace_period`."""
+        """Terminate the process if it's still running after `grace_period` (the client sends Shutdown first)."""
         raise NotImplementedError
 
     def restart(self) -> str:

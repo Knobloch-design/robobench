@@ -10,8 +10,8 @@ from robobench_sdk.specs import Action, Observation
 
 if TYPE_CHECKING:
     from robobench.results.records import EpisodeOutcome
-    from robobench.scenarios.scenario import ScenarioInstance
     from robobench.sim.state import SimState
+    from robobench.tasks.task import EpisodeSetup, Task
     from robobench.validation.invalid import InvalidCommandEvent
     from robobench.validation.limits import Violation
 
@@ -37,7 +37,8 @@ class StepContext:
 
 @dataclass(frozen=True)
 class EpisodeContext:
-    instance: "ScenarioInstance"
+    task: "Task"
+    setup: "EpisodeSetup"
     outcome: "EpisodeOutcome"
     final_state: "SimState"
     steps: int
@@ -51,7 +52,7 @@ class Metric(ABC):
 
     name: str
 
-    def reset(self, instance: "ScenarioInstance") -> None:
+    def reset(self, task: "Task", setup: "EpisodeSetup") -> None:
         """Clear accumulated values at episode start."""
 
     def on_step(self, ctx: StepContext) -> None:

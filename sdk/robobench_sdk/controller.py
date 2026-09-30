@@ -14,7 +14,7 @@ class IncompatibleSpecError(Exception):
 class Controller(ABC):
     """Base class for anything that controls a robot in the benchmark.
 
-    Runs in its own process. The call sequence is:
+    Runs in its own process, behind the SDK's gRPC server. The call sequence is:
 
         on_connect(session)
         repeat per episode:

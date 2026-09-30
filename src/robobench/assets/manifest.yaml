@@ -1,0 +1,37 @@
+# Every asset a task can load. Fill in `license` and `redistributable` before open-sourcing;
+# `robobench validate-task` and `license_problems()` flag anything unknown.
+
+- name: leap_hand_right
+  kind: robot
+  path: ../../../../dex-urdf-main/robots/hands/leap_hand/leap_hand_right.urdf
+  source: dex-urdf (https://github.com/dexsuite/dex-urdf), robots/hands/leap_hand
+  license: MIT
+  redistributable: null
+  notes: >
+    The dex-urdf repository is MIT (DexSuite); the leap_hand folder has its own LICENSE.txt
+    (MIT-style text, copyright Ananye Agarwal). Confirm both notices are carried along.
+
+- name: leap_hand_left
+  kind: robot
+  path: ../../../../dex-urdf-main/robots/hands/leap_hand/leap_hand_left.urdf
+  source: dex-urdf (https://github.com/dexsuite/dex-urdf), robots/hands/leap_hand
+  license: MIT
+  redistributable: null
+  notes: Same as leap_hand_right.
+
+- name: unitree_g1
+  kind: robot
+  path: TODO
+  source: TODO (Unitree's published G1 model)
+  license: unknown
+  redistributable: null
+
+- name: trossen_stationary_ai
+  kind: robot
+  path: TODO
+  source: TODO (Trossen's published models)
+  license: unknown
+  redistributable: null
+
+# Manipulands: most come from LBM-eval (https://github.com/ToyotaResearchInstitute/lbm_eval).
+# Add one entry per object, with the license its files are actually published under.

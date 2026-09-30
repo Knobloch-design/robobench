@@ -5,10 +5,11 @@ Lockstep (default):
     Controller latency affects only how long the run takes, not the results.
 
 Real-time:
-    send observation -> simulation keeps advancing, paced to the wall clock, with the previous
-    command held -> the reply is applied at whatever sim time it arrives -> the next observation
-    is sent at the next control-period boundary. Slow controllers act on stale information,
-    just as they would on hardware.
+    send observation (asynchronous gRPC call) -> simulation keeps advancing, paced to the wall
+    clock, with the previous command held -> the reply is applied at whatever sim time it arrives
+    -> the next observation is sent at the next control-period boundary. Slow controllers act on
+    stale information, just as they would on hardware. If CENIC itself can't keep up with the
+    wall clock during hard contact, the achieved rate is recorded (SimStats).
 
 Both modes give up after `step_timeout` wall-clock seconds with no reply.
 """
@@ -61,7 +62,7 @@ class TimingStrategy(ABC):
         """Deliver `observation`, get and apply an action, and advance the sim one control period.
 
         Raises:
-            ControllerTimeout, ControllerCrashed, ControllerRaised: from the client.
+            ControllerError subclasses: from the client.
             InvalidCommandFailure: from `process`, in FAIL mode.
         """
 

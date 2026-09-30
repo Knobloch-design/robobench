@@ -37,6 +37,9 @@ class Region:
 
 
 class Scene(ABC):
+    """Static geometry plus movable objects. Used by ComposedTask.build_scene; Task subclasses
+    may use one or build their scene directly."""
+
     name: str
 
     @abstractmethod
@@ -48,7 +51,7 @@ class Scene(ABC):
         return {}
 
     def object_bodies(self) -> tuple[str, ...]:
-        """Body names of movable objects (cube, soft toy...), for randomizers, goals, and metrics."""
+        """Body names of movable objects (cube, mug...), for randomizers, goals, and metrics."""
         return ()
 
     def description(self) -> str:

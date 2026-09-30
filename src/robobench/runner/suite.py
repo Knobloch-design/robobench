@@ -1,24 +1,30 @@
-"""A suite: a named list of scenarios (with options) to run together."""
+"""A suite: a named list of tasks (with options) to run together.
+
+The three ways the benchmark is meant to be used map onto suites:
+    run everything             standard_suite()
+    run a subset               BenchmarkSuite.from_filter(robot="leap_hand"), or tags, or names
+    run a custom mix           a suite YAML file
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 
 @dataclass
 class SuiteEntry:
-    scenario: str
+    task: str
     """Registry name, e.g. "leap/cube_reorientation"."""
     overrides: dict[str, Any] = field(default_factory=dict)
-    """Keyword arguments for the scenario factory."""
+    """Keyword arguments for the task factory."""
     episodes: int | None = None
-    """None uses RunConfig.episodes_per_scenario."""
+    """None uses RunConfig.episodes_per_task."""
     label: str | None = None
-    """Name in results when the same scenario appears with different overrides."""
+    """Name in results when the same task appears with different overrides."""
     observation_pipeline: list[dict[str, Any]] | None = None
-    """Pipeline config (see `ObservationPipeline.from_config`) replacing the scenario's for this entry."""
+    """Pipeline config (see `ObservationPipeline.from_config`) replacing the task's for this entry."""
 
 
 @dataclass
@@ -35,11 +41,20 @@ class BenchmarkSuite:
         raise NotImplementedError
 
     @classmethod
-    def from_tags(cls, name: str, tags: tuple[str, ...]) -> "BenchmarkSuite":
-        """Every registered scenario with all `tags`, default options."""
+    def from_filter(
+        cls,
+        name: str = "filtered",
+        robot: str | None = None,
+        tags: tuple[str, ...] = (),
+        tasks: Sequence[str] | None = None,
+    ) -> "BenchmarkSuite":
+        """Every registered task matching the filters, with default options.
+
+        e.g. from_filter(robot="leap_hand"), from_filter(tags=("locomotion",)).
+        """
         raise NotImplementedError
 
 
-def standard_suite(robot: str | None = None) -> BenchmarkSuite:
-    """The shipped suite, optionally for one robot ("unitree_g1", "leap_hand", "trossen_stationary_ai")."""
+def standard_suite() -> BenchmarkSuite:
+    """The full benchmark: every task in the built-in library, default options."""
     raise NotImplementedError

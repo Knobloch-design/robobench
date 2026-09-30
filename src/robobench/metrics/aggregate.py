@@ -28,11 +28,11 @@ def summarize(values: Sequence[float]) -> MetricSummary:
 
 
 def aggregate_episodes(episodes: Sequence["EpisodeRecord"]) -> Mapping[str, Mapping[str, MetricSummary]]:
-    """{scenario name: {metric name: summary}}. Episodes that failed for controller reasons
+    """{task label: {metric name: summary}}. Episodes that failed for controller reasons
     (crash, timeout, invalid command) count as failures, not as missing data."""
     raise NotImplementedError
 
 
 def failure_breakdown(episodes: Sequence["EpisodeRecord"]) -> Mapping[str, Mapping[str, int]]:
-    """{scenario name: {termination reason or failure kind: count}}."""
+    """{task label: {termination reason or failure kind: count}}."""
     raise NotImplementedError
