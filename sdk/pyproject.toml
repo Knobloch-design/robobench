@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robobench-sdk"
+version = "0.0.1"
+description = "Controller-side SDK for robobench. Install this in your controller's environment; it does not depend on Drake."
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pyzmq",
+    "msgpack",
+]
+
+[project.optional-dependencies]
+llm = ["pyyaml"]
+
+[tool.setuptools.packages.find]
+include = ["robobench_sdk*"]

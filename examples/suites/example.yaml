@@ -1,0 +1,16 @@
+name: example
+description: One of each built-in test, with a noisy-sensor variant of the cube task.
+entries:
+  - scenario: leap/cube_reorientation
+  - scenario: leap/cube_reorientation
+    label: leap/cube_reorientation_noisy
+    overrides:
+      randomize_friction: true
+    # Observation pipeline override for this entry (noise on the joint encoders).
+    observation_pipeline:
+      - {type: gaussian_noise, field: joint_position, std: 0.01}
+  - scenario: g1/walk_rocky_terrain
+    episodes: 3
+    overrides:
+      terrain_variant: 1
+  - scenario: trossen/soft_object_pick
