@@ -1,4 +1,4 @@
-"""Converting between numpy arrays and the gRPC messages in proto/controller.proto.
+"""Converting between numpy arrays and the gRPC messages (schema TODO: not written yet).
 
 Used on both sides of the connection: the simulation packs observations and unpacks
 actions; the controller server does the reverse.

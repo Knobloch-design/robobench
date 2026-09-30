@@ -12,5 +12,5 @@ Simulation process:
     runner.py              run_episode, run_benchmark, check_demonstrations
 
 Both:
-    messages.py            numpy arrays <-> gRPC messages (defined in proto/controller.proto)
+    messages.py            numpy arrays <-> gRPC messages (schema TODO)
 """

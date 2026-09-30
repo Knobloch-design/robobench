@@ -7,7 +7,7 @@
     └────────────────────────────┘         └────────────────────────────┘
 
 The user's Controller is wrapped in a gRPC server. The simulation process connects to
-it and calls Reset and Act (defined in proto/controller.proto). Keeping the controller
+it and calls Reset and Act (defined in the gRPC schema; TODO). Keeping the controller
 in its own process means it can't read the simulator's true state, can use its own
 Python packages without clashing with Drake's, and can't take the benchmark down if
 it crashes or hangs.
@@ -22,7 +22,7 @@ from robobench.controller import Controller
 class ControllerServer:
     """Answers the simulation's gRPC calls by calling the user's Controller.
 
-    Will subclass the ControllerServicer class generated from proto/controller.proto.
+    Will subclass the ControllerServicer class generated from the gRPC schema (TODO: schema not written yet).
     """
 
     def __init__(self, controller: Controller):

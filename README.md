@@ -22,7 +22,7 @@ own Python packages; and if it crashes or hangs, the benchmark keeps going.
  └───────────────────────────────────────────────┘          └─────────────────────────────────────┘
 ```
 
-The messages are defined in [proto/controller.proto](proto/controller.proto).
+The messages will be defined in a gRPC schema (a `.proto` file). **TODO:** schema not written yet.
 
 ## The pieces
 
